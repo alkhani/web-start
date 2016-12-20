@@ -29,14 +29,9 @@ function FriendlyChat() {
   this.mediaCapture = document.getElementById('mediaCapture');
   this.userPic = document.getElementById('user-pic');
   this.userName = document.getElementById('user-name');
-  this.signInButton = document.getElementById('sign-in');
-  this.signOutButton = document.getElementById('sign-out');
-  this.signInSnackbar = document.getElementById('must-signin-snackbar');
 
   // Saves message on form submit.
   this.messageForm.addEventListener('submit', this.saveMessage.bind(this));
-  this.signOutButton.addEventListener('click', this.signOut.bind(this));
-  this.signInButton.addEventListener('click', this.signIn.bind(this));
 
   // Toggle for the button.
   var buttonTogglingHandler = this.toggleButton.bind(this);
@@ -83,7 +78,7 @@ FriendlyChat.prototype.loadMessages = function() {
 FriendlyChat.prototype.saveMessage = function(e) {
   e.preventDefault();
   // Check that the user entered a message and is signed in.
-  if (this.messageInput.value && this.checkSignedInWithMessage()) {
+  if (this.messageInput.value) { //&& this.checkSignedInWithMessage()) {
     var currentUser = this.auth.currentUser;
     // Add a new message entry to the Firebase Database.
     this.messagesRef.push({
@@ -128,11 +123,11 @@ FriendlyChat.prototype.saveImageMessage = function(event) {
       message: 'You can only share images',
       timeout: 2000
     };
-    this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
+    // this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
     return;
   }
   // Check if the user is signed-in
-  if (this.checkSignedInWithMessage()) {
+  if (true) { //(this.checkSignedInWithMessage()) {
 
     // We add a message with a loading icon that will get updated with the shared image.
     var currentUser = this.auth.currentUser;
@@ -156,37 +151,47 @@ FriendlyChat.prototype.saveImageMessage = function(event) {
   }
 };
 
-// Signs-in Friendly Chat.
-FriendlyChat.prototype.signIn = function() {
-  // Sign in Firebase using popup auth and Google as the identity provider.
-  var provider = new firebase.auth.GoogleAuthProvider();
-  this.auth.signInWithPopup(provider);
-};
+// // Signs-in Friendly Chat.
+// FriendlyChat.prototype.signIn = function() {
+//   // // Sign in Firebase using popup auth and Google as the identity provider.
+//   // var provider = new firebase.auth.GoogleAuthProvider();
+//   // this.auth.signInWithPopup(provider);
 
-// Signs-out of Friendly Chat.
-FriendlyChat.prototype.signOut = function() {
-  // Sign out of Firebase.
-  this.auth.signOut();
-};
+//   firebase.auth().signInAnonymously().catch(function(error) {
+//   // Handle Errors here.
+//   var errorCode = error.code;
+//   var errorMessage = error.message;
+//   // ...
+//   });
+// };
+
+// // Signs-out of Friendly Chat.
+// FriendlyChat.prototype.signOut = function() {
+//   // Sign out of Firebase.
+//   this.auth.signOut();
+// };
 
 // Triggers when the auth state change for instance when the user signs-in or signs-out.
 FriendlyChat.prototype.onAuthStateChanged = function(user) {
   if (user) { // User is signed in!
+
     // Get profile pic and user's name from the Firebase user object.
-    var profilePicUrl = user.photoURL; // Only change these two lines!
-    var userName = user.displayName;   // Only change these two lines!
+    // var profilePicUrl = user.photoURL; // Only change these two lines!
+    var isAnonymous = user.isAnonymous;
+    // var userName = user.displayName;   // Only change these two lines!
+    var userName = user.uid;
 
     // Set the user's profile pic and name.
-    this.userPic.style.backgroundImage = 'url(' + profilePicUrl + ')';
+    // this.userPic.style.backgroundImage = 'url(' + profilePicUrl + ')';
     this.userName.textContent = userName;
 
     // Show user's profile and sign-out button.
     this.userName.removeAttribute('hidden');
     this.userPic.removeAttribute('hidden');
-    this.signOutButton.removeAttribute('hidden');
+    // this.signOutButton.removeAttribute('hidden');
 
-    // Hide sign-in button.
-    this.signInButton.setAttribute('hidden', 'true');
+    // // Hide sign-in button.
+    // this.signInButton.setAttribute('hidden', 'true');
 
     // We load currently existing chant messages.
     this.loadMessages();
@@ -194,28 +199,36 @@ FriendlyChat.prototype.onAuthStateChanged = function(user) {
     // Hide user's profile and sign-out button.
     this.userName.setAttribute('hidden', 'true');
     this.userPic.setAttribute('hidden', 'true');
-    this.signOutButton.setAttribute('hidden', 'true');
+    // this.signOutButton.setAttribute('hidden', 'true');
 
-    // Show sign-in button.
-    this.signInButton.removeAttribute('hidden');
+    // // Show sign-in button.
+    // this.signInButton.removeAttribute('hidden');
+
+    // if auth state has changed, log me into a guest account // q for self, why does this auto auth on first launch?  
+    this.auth().signInAnonymously().catch(function(error) {
+      // Handle Errors here.
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      // ...
+    })
   }
 };
 
-// Returns true if user is signed-in. Otherwise false and displays a message.
-FriendlyChat.prototype.checkSignedInWithMessage = function() {
-  // Return true if the user is signed in Firebase
-  if (this.auth.currentUser) {
-    return true;
-  }
+// // Returns true if user is signed-in. Otherwise false and displays a message.
+// FriendlyChat.prototype.checkSignedInWithMessage = function() {
+//   // Return true if the user is signed in Firebase
+//   if (this.auth.currentUser) {
+//     return true;
+//   }
 
-  // Display a message to the user using a Toast.
-  var data = {
-    message: 'You must sign-in first',
-    timeout: 2000
-  };
-  this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
-  return false;
-};
+//   // Display a message to the user using a Toast.
+//   var data = {
+//     message: 'You must sign-in first',
+//     timeout: 2000
+//   };
+//   // this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
+//   return false;
+// };
 
 // Resets the given MaterialTextField.
 FriendlyChat.resetMaterialTextfield = function(element) {
@@ -293,6 +306,10 @@ FriendlyChat.prototype.checkSetup = function() {
         'displayed there.');
   }
 };
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 window.onload = function() {
   window.friendlyChat = new FriendlyChat();
