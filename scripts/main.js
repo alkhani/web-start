@@ -57,6 +57,44 @@ FriendlyChat.prototype.initFirebase = function() {
   this.auth.onAuthStateChanged(this.onAuthStateChanged.bind(this));
 };
 
+// Triggers when the auth state change for instance when the user signs-in or signs-out.
+FriendlyChat.prototype.onAuthStateChanged = function(user) {
+  if (user) { // User is signed in!
+
+    // Get profile pic and user's name from the Firebase user object.
+    var userName = user.displayName;   // Only change these two lines!
+    var userUid = user.uid;
+
+    // User is signed in.
+    user.updateProfile({
+        displayName: "Random Name"
+    }).then(function() {
+        // Update successful.
+    }, function(error) {
+        // An error happened.
+    });
+
+    // Set the user's name.
+    this.userName.textContent = userUid;
+
+    // Show user's profile
+    this.userName.removeAttribute('hidden');
+    this.userPic.removeAttribute('hidden');
+
+    // We load currently existing chat messages.
+    this.loadMessages();
+
+  } else { // User is signed out!
+
+    // if auth state has changed, log me into a guest account // q for self, why does this auto auth on first launch?  
+    this.auth().signInAnonymously().catch(function(error) {
+      // Handle Errors here.
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      // ...
+    })
+  }
+};
 
 // Loads chat messages history and listens for upcoming ones.
 FriendlyChat.prototype.loadMessages = function() {
@@ -77,8 +115,8 @@ FriendlyChat.prototype.loadMessages = function() {
 // Saves a new message on the Firebase DB.
 FriendlyChat.prototype.saveMessage = function(e) {
   e.preventDefault();
-  // Check that the user entered a message and is signed in.
-  if (this.messageInput.value) { //&& this.checkSignedInWithMessage()) {
+  // Check that the user entered a message
+  if (this.messageInput.value) { 
     var currentUser = this.auth.currentUser;
     // Add a new message entry to the Firebase Database.
     this.messagesRef.push({
@@ -94,7 +132,6 @@ FriendlyChat.prototype.saveMessage = function(e) {
     });
   }
 };
-
 
 // Sets the URL of the given img element with the URL of the image stored in Firebase Storage.
 FriendlyChat.prototype.setImageUrl = function(imageUri, imgElement) {
@@ -126,109 +163,27 @@ FriendlyChat.prototype.saveImageMessage = function(event) {
     // this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
     return;
   }
-  // Check if the user is signed-in
-  if (true) { //(this.checkSignedInWithMessage()) {
 
-    // We add a message with a loading icon that will get updated with the shared image.
-    var currentUser = this.auth.currentUser;
-    this.messagesRef.push({
-      name: currentUser.displayName,
-      imageUrl: FriendlyChat.LOADING_IMAGE_URL,
-      photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
-    }).then(function(data) {
+  // We add a message with a loading icon that will get updated with the shared image.
+  var currentUser = this.auth.currentUser;
+  this.messagesRef.push({
+    name: currentUser.displayName,
+    imageUrl: FriendlyChat.LOADING_IMAGE_URL,
+    photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
+  }).then(function(data) {
 
-      // Upload the image to Firebase Storage.
-      this.storage.ref(currentUser.uid + '/' + Date.now() + '/' + file.name)
-          .put(file, {contentType: file.type})
-          .then(function(snapshot) {
-            // Get the file's Storage URI and update the chat message placeholder.
-            var filePath = snapshot.metadata.fullPath;
-            data.update({imageUrl: this.storage.ref(filePath).toString()});
-          }.bind(this)).catch(function(error) {
-        console.error('There was an error uploading a file to Firebase Storage:', error);
-      });
-    }.bind(this));
-  }
+    // Upload the image to Firebase Storage.
+    this.storage.ref(currentUser.uid + '/' + Date.now() + '/' + file.name)
+        .put(file, {contentType: file.type})
+        .then(function(snapshot) {
+          // Get the file's Storage URI and update the chat message placeholder.
+          var filePath = snapshot.metadata.fullPath;
+          data.update({imageUrl: this.storage.ref(filePath).toString()});
+        }.bind(this)).catch(function(error) {
+      console.error('There was an error uploading a file to Firebase Storage:', error);
+    });
+  }.bind(this));
 };
-
-// // Signs-in Friendly Chat.
-// FriendlyChat.prototype.signIn = function() {
-//   // // Sign in Firebase using popup auth and Google as the identity provider.
-//   // var provider = new firebase.auth.GoogleAuthProvider();
-//   // this.auth.signInWithPopup(provider);
-
-//   firebase.auth().signInAnonymously().catch(function(error) {
-//   // Handle Errors here.
-//   var errorCode = error.code;
-//   var errorMessage = error.message;
-//   // ...
-//   });
-// };
-
-// // Signs-out of Friendly Chat.
-// FriendlyChat.prototype.signOut = function() {
-//   // Sign out of Firebase.
-//   this.auth.signOut();
-// };
-
-// Triggers when the auth state change for instance when the user signs-in or signs-out.
-FriendlyChat.prototype.onAuthStateChanged = function(user) {
-  if (user) { // User is signed in!
-
-    // Get profile pic and user's name from the Firebase user object.
-    // var profilePicUrl = user.photoURL; // Only change these two lines!
-    var isAnonymous = user.isAnonymous;
-    // var userName = user.displayName;   // Only change these two lines!
-    var userName = user.uid;
-
-    // Set the user's profile pic and name.
-    // this.userPic.style.backgroundImage = 'url(' + profilePicUrl + ')';
-    this.userName.textContent = userName;
-
-    // Show user's profile and sign-out button.
-    this.userName.removeAttribute('hidden');
-    this.userPic.removeAttribute('hidden');
-    // this.signOutButton.removeAttribute('hidden');
-
-    // // Hide sign-in button.
-    // this.signInButton.setAttribute('hidden', 'true');
-
-    // We load currently existing chant messages.
-    this.loadMessages();
-  } else { // User is signed out!
-    // Hide user's profile and sign-out button.
-    this.userName.setAttribute('hidden', 'true');
-    this.userPic.setAttribute('hidden', 'true');
-    // this.signOutButton.setAttribute('hidden', 'true');
-
-    // // Show sign-in button.
-    // this.signInButton.removeAttribute('hidden');
-
-    // if auth state has changed, log me into a guest account // q for self, why does this auto auth on first launch?  
-    this.auth().signInAnonymously().catch(function(error) {
-      // Handle Errors here.
-      var errorCode = error.code;
-      var errorMessage = error.message;
-      // ...
-    })
-  }
-};
-
-// // Returns true if user is signed-in. Otherwise false and displays a message.
-// FriendlyChat.prototype.checkSignedInWithMessage = function() {
-//   // Return true if the user is signed in Firebase
-//   if (this.auth.currentUser) {
-//     return true;
-//   }
-
-//   // Display a message to the user using a Toast.
-//   var data = {
-//     message: 'You must sign-in first',
-//     timeout: 2000
-//   };
-//   // this.signInSnackbar.MaterialSnackbar.showSnackbar(data);
-//   return false;
-// };
 
 // Resets the given MaterialTextField.
 FriendlyChat.resetMaterialTextfield = function(element) {
@@ -306,10 +261,6 @@ FriendlyChat.prototype.checkSetup = function() {
         'displayed there.');
   }
 };
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 window.onload = function() {
   window.friendlyChat = new FriendlyChat();
